@@ -1,24 +1,62 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_BUILDKIT = 1
+    }
+
     stages {
-        stage('clone repo') {
+
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()  // prevents old build issues
+            }
+        }
+
+        stage('Clone Repo') {
             steps {
                 git branch: 'main', url: 'https://github.com/poojamannem1/flasksql.git'
             }
         }
-        stage('Build image') {
+
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t flask-app .'
+                script {
+                    sh '''
+                        echo "🔨 Building Docker Image..."
+                        docker build --no-cache -t flask-app .
+                    '''
+                }
             }
         }
-        stage('deploy with docker compose') {
+
+        stage('Deploy with Docker Compose') {
             steps {
-                sh 'docker-compose down || true '
-                
-                sh 'docker-compose up -d --build'
+                script {
+                    sh '''
+                        echo "📌 Stopping old containers..."
+                        docker-compose down || true
+
+                        echo "🚀 Starting new containers..."
+                        docker-compose up -d --build
+                    '''
+                }
             }
         }
-       
+    }
+
+    post {
+        always {
+            echo "🧹 Running cleanup..."
+
+            // Removes unused containers, images, cache
+            sh 'docker system prune -f || true'
+        }
+        success {
+            echo "✅ Deployment Completed Successfully!"
+        }
+        failure {
+            echo "❌ Deployment Failed!"
+        }
     }
 }
