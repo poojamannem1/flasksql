@@ -33,13 +33,17 @@ pipeline {
         stage('Deploy with Docker Compose') {
             steps {
                 script {
-                    sh '''
-                        echo "📌 Stopping old containers..."
-                        docker compose down || true
+                  sh '''
+                    set -e  # Stop on error
+                    echo "📌 Stopping old containers..."
+                    docker compose down || true
 
-                        echo "🚀 Starting new containers..."
-                        docker compose up -d --build
-                    '''
+                    echo "🚀 Starting new containers..."
+                    docker compose up -d --build
+
+                    echo "📜 Showing running containers..."
+                    docker ps
+                  '''
                 }
             }
         }
